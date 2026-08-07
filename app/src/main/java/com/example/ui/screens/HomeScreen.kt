@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AdminPanelSettings
 import androidx.compose.material.icons.outlined.Announcement
 import androidx.compose.material.icons.outlined.Article
 import androidx.compose.material.icons.outlined.Call
@@ -86,7 +87,7 @@ fun HomeScreen(
     onNavigate: (String) -> Unit
 ) {
     val phaseGoalAmount = 37_800_000_000L // 37.8 Billion Tomans Phase 1 target
-    val liveRatio = (totalRaisedAmount.toDouble() / phaseGoalAmount.toDouble()).coerceIn(0.01, 1.0).toFloat()
+    val liveRatio = (totalRaisedAmount.toDouble() / phaseGoalAmount.toDouble()).coerceIn(0.0, 1.0).toFloat()
 
     var progressTarget by remember { mutableFloatStateOf(liveRatio) }
     val animatedProgress by animateFloatAsState(
@@ -114,6 +115,7 @@ fun HomeScreen(
         NavSectionItem("درباره خیریه", "هیئت امنا", Icons.Outlined.Info, "about_trustees"),
         NavSectionItem("ارتباط با ما", "آدرس و نقشه", Icons.Outlined.Call, "contact_us"),
         NavSectionItem("سوالات متداول", "پاسخ به ابهامات", Icons.Outlined.HelpOutline, "faq"),
+        NavSectionItem("پنل مدیریت", "گزارشات و فایربیس", Icons.Outlined.AdminPanelSettings, "admin"),
         NavSectionItem("تنظیمات", "شخصی‌سازی", Icons.Outlined.Settings, "settings")
     )
 

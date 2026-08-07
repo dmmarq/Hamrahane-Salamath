@@ -11,7 +11,11 @@ import com.example.data.model.Pledge
 import com.example.data.model.UserProfile
 import com.example.data.model.VolunteerRegistration
 import com.example.data.model.WallMessage
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -25,6 +29,77 @@ class AppRepository(private val db: AppDatabase) {
     val allPledges: Flow<List<Pledge>> = db.pledgeDao().getAllPledges()
     val wallMessages: Flow<List<WallMessage>> = db.wallDao().getAllWallMessages()
 
+    private val ioScope = CoroutineScope(Dispatchers.IO)
+
+    init {
+        startFirestoreListeners()
+    }
+
+    private fun startFirestoreListeners() {
+        try {
+            val firestore = FirebaseFirestore.getInstance()
+
+            // Listen to real-time wall_messages from Firestore
+            firestore.collection("wall_messages")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null || snapshot == null) return@addSnapshotListener
+                    val messages = snapshot.documents.mapNotNull { doc ->
+                        val senderName = doc.getString("senderName") ?: return@mapNotNull null
+                        val message = doc.getString("message") ?: return@mapNotNull null
+                        val amountText = doc.getString("amountText") ?: "مشارکت معنوی"
+                        val dateFormatted = doc.getString("dateFormatted") ?: ""
+                        WallMessage(
+                            senderName = senderName,
+                            message = message,
+                            amountText = amountText,
+                            dateFormatted = dateFormatted
+                        )
+                    }
+                    if (messages.isNotEmpty()) {
+                        ioScope.launch {
+                            messages.forEach { db.wallDao().insertWallMessage(it) }
+                        }
+                    }
+                }
+
+            // Listen to real-time donations from Firestore
+            firestore.collection("donations")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null || snapshot == null) return@addSnapshotListener
+                    val donations = snapshot.documents.mapNotNull { doc ->
+                        val amount = doc.getLong("amount") ?: return@mapNotNull null
+                        val trackingCode = doc.getString("trackingCode") ?: return@mapNotNull null
+                        val receiptNo = doc.getString("receiptNo") ?: ""
+                        val campaignName = doc.getString("campaignName") ?: "ساخت بیمارستان ۶۴ تختخوابی"
+                        val dateFormatted = doc.getString("dateFormatted") ?: ""
+                        val timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
+                        val paymentMethod = doc.getString("paymentMethod") ?: "درگاه آنلاین"
+                        val isAnonymous = doc.getBoolean("isAnonymous") ?: false
+                        val message = doc.getString("message") ?: ""
+
+                        Donation(
+                            amount = amount,
+                            dateFormatted = dateFormatted,
+                            timestamp = timestamp,
+                            campaignName = campaignName,
+                            paymentMethod = paymentMethod,
+                            trackingCode = trackingCode,
+                            receiptNo = receiptNo,
+                            isAnonymous = isAnonymous,
+                            message = message
+                        )
+                    }
+                    if (donations.isNotEmpty()) {
+                        ioScope.launch {
+                            donations.forEach { db.donationDao().insertDonation(it) }
+                        }
+                    }
+                }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     suspend fun saveUserProfile(name: String, age: String, gender: String) {
         val current = db.userDao().getUserProfileOnce()
         val updated = (current ?: UserProfile()).copy(
@@ -34,6 +109,20 @@ class AppRepository(private val db: AppDatabase) {
             isRegistered = true
         )
         db.userDao().insertOrUpdateUser(updated)
+
+        try {
+            val firestore = FirebaseFirestore.getInstance()
+            firestore.collection("users").document(name.ifBlank { "anonymous_user" }).set(
+                mapOf(
+                    "name" to name,
+                    "age" to age,
+                    "gender" to gender,
+                    "isRegistered" to true
+                )
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     suspend fun addDonation(
@@ -72,10 +161,11 @@ class AppRepository(private val db: AppDatabase) {
             )
         )
 
+        val sender = if (isAnonymous) "خیر گمنام" else if (current.name.isNotBlank()) current.name else "یاور سلامت"
+        val amountStr = "${formatPersianNumber(amount)} تومان"
+
         // If user left a message, add to Wall of Kindness
         if (message.isNotBlank()) {
-            val sender = if (isAnonymous) "خیر گمنام" else if (current.name.isNotBlank()) current.name else "یاور سلامت"
-            val amountStr = "${formatPersianNumber(amount)} تومان"
             db.wallDao().insertWallMessage(
                 WallMessage(
                     senderName = sender,
@@ -86,16 +176,63 @@ class AppRepository(private val db: AppDatabase) {
             )
         }
 
+        // Write to Firebase Firestore
+        try {
+            val firestore = FirebaseFirestore.getInstance()
+            val donationData = mapOf(
+                "amount" to amount,
+                "dateFormatted" to dateFormatted,
+                "timestamp" to timestamp,
+                "campaignName" to campaignName,
+                "paymentMethod" to paymentMethod,
+                "trackingCode" to trackingCode,
+                "receiptNo" to receiptNo,
+                "isAnonymous" to isAnonymous,
+                "message" to message,
+                "donorName" to sender
+            )
+            firestore.collection("donations").add(donationData)
+
+            if (message.isNotBlank()) {
+                val wallData = mapOf(
+                    "senderName" to sender,
+                    "message" to message,
+                    "amountText" to amountStr,
+                    "dateFormatted" to dateFormatted,
+                    "isApproved" to true
+                )
+                firestore.collection("wall_messages").add(wallData)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
         return donation
     }
 
     suspend fun addPledge(monthlyAmount: Long, dayOfMonth: Int): Long {
+        val createdDate = getCurrentPersianDate()
         val pledge = Pledge(
             monthlyAmount = monthlyAmount,
             dayOfMonth = dayOfMonth,
-            createdDate = getCurrentPersianDate()
+            createdDate = createdDate
         )
-        return db.pledgeDao().insertPledge(pledge)
+        val id = db.pledgeDao().insertPledge(pledge)
+
+        try {
+            val firestore = FirebaseFirestore.getInstance()
+            val pledgeData = mapOf(
+                "monthlyAmount" to monthlyAmount,
+                "dayOfMonth" to dayOfMonth,
+                "createdDate" to createdDate,
+                "isPledgeActive" to true
+            )
+            firestore.collection("pledges").add(pledgeData)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        return id
     }
 
     suspend fun deletePledge(id: Long) {
@@ -105,26 +242,57 @@ class AppRepository(private val db: AppDatabase) {
     suspend fun addWallMessage(message: String) {
         val current = db.userDao().getUserProfileOnce()
         val sender = if (current?.name?.isNotBlank() == true) current.name else "همراه نیکی"
+        val dateFormatted = getCurrentPersianDate()
+
         db.wallDao().insertWallMessage(
             WallMessage(
                 senderName = sender,
                 message = message,
                 amountText = "مشارکت معنوی",
-                dateFormatted = getCurrentPersianDate()
+                dateFormatted = dateFormatted
             )
         )
+
+        try {
+            val firestore = FirebaseFirestore.getInstance()
+            val wallData = mapOf(
+                "senderName" to sender,
+                "message" to message,
+                "amountText" to "مشارکت معنوی",
+                "dateFormatted" to dateFormatted,
+                "isApproved" to true
+            )
+            firestore.collection("wall_messages").add(wallData)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     suspend fun registerVolunteer(name: String, phone: String, expertise: String, description: String) {
+        val dateSubmitted = getCurrentPersianDate()
         db.volunteerDao().insertVolunteer(
             VolunteerRegistration(
                 name = name,
                 phone = phone,
                 expertise = expertise,
                 description = description,
-                dateSubmitted = getCurrentPersianDate()
+                dateSubmitted = dateSubmitted
             )
         )
+
+        try {
+            val firestore = FirebaseFirestore.getInstance()
+            val volunteerData = mapOf(
+                "name" to name,
+                "phone" to phone,
+                "expertise" to expertise,
+                "description" to description,
+                "dateSubmitted" to dateSubmitted
+            )
+            firestore.collection("volunteers").add(volunteerData)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     // Default static/rich Persian content for news, notices, board members, FAQs & campaigns
@@ -208,7 +376,7 @@ class AppRepository(private val db: AppDatabase) {
             id = 1,
             title = "کمپین نذر سلامت (تجهیز اورژانس)",
             targetAmount = 5000000000L,
-            raisedAmount = 3200000000L,
+            raisedAmount = 0L,
             description = "تامین هزینه‌های احداث و تجهیز بخش اورژانس پیشرفته بیمارستان فردوسیه",
             endDate = "۱۴۰۳/۰۶/۳۱"
         ),
@@ -216,7 +384,7 @@ class AppRepository(private val db: AppDatabase) {
             id = 2,
             title = "کمپین یادبود اموات و صدقه جاریه",
             targetAmount = 10000000000L,
-            raisedAmount = 6800000000L,
+            raisedAmount = 0L,
             description = "اهداء مبالغ یادبود برای شادی روح درگذشتگان در قالب نام‌گذاری بخش‌های درمانی",
             endDate = "پایان پروژه"
         ),
@@ -224,7 +392,7 @@ class AppRepository(private val db: AppDatabase) {
             id = 3,
             title = "تجهیز ۲ باب اتاق عمل جراحی تخصصی",
             targetAmount = 15000000000L,
-            raisedAmount = 8500000000L,
+            raisedAmount = 0L,
             description = "خرید دستگاه‌های بیهوشی، مانیتورینگ قلب و چراغ‌های سیالیتیک اتاق عمل",
             endDate = "۱۴۰۳/۰۸/۳۰"
         )

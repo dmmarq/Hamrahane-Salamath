@@ -56,15 +56,7 @@ fun WallOfKindnessScreen(
     val context = LocalContext.current
     var inputMessage by remember { mutableStateOf("") }
 
-    // Pre-populated warm wall messages
-    val defaultMessages = listOf(
-        WallMessage(1, "حاج رضا احمدی", "به امید سلامتی عاجل همه بیماران و شفا یافتن کودکان عزیزمان 🌿", "۵۰۰,۰۰۰ تومان", "۱۴۰۳/۰۵/۱۱"),
-        WallMessage(2, "خانم حسینی", "به نیت شادی روح پدر مهربانم. روح همه درگذشتگان شاد.", "۱,۰۰۰,۰۰۰ تومان", "۱۴۰۳/۰۵/۱۰"),
-        WallMessage(3, "همراه نیکی", "برای آینده درخشان و سلامتی کودکان و مردم شریف شهر فردوسیه", "۲۰۰,۰۰۰ تومان", "۱۴۰۳/۰۵/۰۹"),
-        WallMessage(4, "دکتر صادقی", "دست تمامی خیرین محترم را برای احداث این بیمارستان ارزشمند می‌فشارم.", "مشارکت معنوی", "۱۴۰۳/۰۵/۰۸")
-    )
-
-    val allDisplayMessages = (messages + defaultMessages).distinctBy { it.id }
+    val allDisplayMessages = messages
 
     Scaffold(
         topBar = {

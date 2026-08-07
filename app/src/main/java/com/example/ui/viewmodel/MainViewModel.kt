@@ -54,9 +54,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _latestReceipt = MutableStateFlow<Donation?>(null)
     val latestReceipt = _latestReceipt.asStateFlow()
 
-    // Base Public Stats (Live ticker addition)
-    val basePublicRaised: Long = 23850000000L
-    val basePublicDonorsCount: Int = 3524
+    // Base Public Stats (Starts clean at zero)
+    val basePublicRaised: Long = 0L
+    val basePublicDonorsCount: Int = 0
 
     val combinedRaisedAmount: StateFlow<Long> = totalDonated.combine(MutableStateFlow(basePublicRaised)) { local, base ->
         (local ?: 0L) + base

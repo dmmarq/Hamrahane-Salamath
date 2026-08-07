@@ -101,11 +101,14 @@ fun DonationScreen(
     var selectedCampaign by remember { mutableStateOf(campaigns[0]) }
 
     var isAnonymous by remember { mutableStateOf(false) }
+    var donorName by remember { mutableStateOf("") }
+    var donorPhone by remember { mutableStateOf("") }
     var wallMessage by remember { mutableStateOf("") }
 
-    val bankCardNumber = "۶۰۳۷-۹۹۷۹-۱۲۳۴-۵۶۷۸"
-    val bankIbanNumber = "IR۱۲-۰۱۷۰-۰۰۰۰-۰۱۲۳-۴۵۶۷-۸۹۰۱-۲۳"
-    val bankAccountHolder = "مؤسسه خیریه همراهان سلامت فردوسیه"
+    val sharedPrefs = remember { context.getSharedPreferences("admin_prefs", Context.MODE_PRIVATE) }
+    val bankCardNumber = remember { sharedPrefs.getString("bank_card_number", "۶۰۳۷-۹۹۷۹-۱۲۳۴-۵۶۷۸") ?: "۶۰۳۷-۹۹۷۹-۱۲۳۴-۵۶۷۸" }
+    val bankIbanNumber = remember { sharedPrefs.getString("bank_iban_number", "IR۱۲-۰۱۷۰-۰۰۰۰-۰۱۲۳-۴۵۶۷-۸۹۰۱-۲۳") ?: "IR۱۲-۰۱۷۰-۰۰۰۰-۰۱۲۳-۴۵۶۷-۸۹۰۱-۲۳" }
+    val bankAccountHolder = remember { sharedPrefs.getString("bank_account_holder", "مؤسسه خیریه همراهان سلامت فردوسیه") ?: "مؤسسه خیریه همراهان سلامت فردوسیه" }
 
     Scaffold(
         topBar = {
@@ -412,7 +415,7 @@ fun DonationScreen(
                 }
             }
 
-            // Message for Wall of Kindness & Anonymous Toggle
+            // Message for Wall of Kindness & Donor Details
             Card(
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -424,24 +427,12 @@ fun DonationScreen(
                         .padding(20.dp)
                 ) {
                     Text(
-                        text = "ثبت پیام در دیوار مهربانی (اختیاری) 💬",
+                        text = "اطلاعات پرداخت‌کننده و پیام (اختیاری) 👤",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
-
-                    OutlinedTextField(
-                        value = wallMessage,
-                        onValueChange = { wallMessage = it },
-                        placeholder = { Text("مثلاً: به نیت سلامتی فرزندانم یا شادمانی روح پدرم...") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 2,
-                        maxLines = 4,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -460,6 +451,46 @@ fun DonationScreen(
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
+
+                    if (!isAnonymous) {
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        OutlinedTextField(
+                            value = donorName,
+                            onValueChange = { donorName = it },
+                            label = { Text("نام و نام خانوادگی خیر") },
+                            placeholder = { Text("مثلاً: علی محمدی") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        OutlinedTextField(
+                            value = donorPhone,
+                            onValueChange = { donorPhone = it },
+                            label = { Text("شماره همراه (جهت دریافت پیامک رسید)") },
+                            placeholder = { Text("مثلاً: ۰۹۱۲۳۴۵۶۷۸۹") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = wallMessage,
+                        onValueChange = { wallMessage = it },
+                        label = { Text("ثبت پیام در دیوار مهربانی (اختیاری)") },
+                        placeholder = { Text("مثلاً: به نیت سلامتی فرزندانم یا شادمانی روح پدرم...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                        maxLines = 4,
+                        shape = RoundedCornerShape(12.dp)
+                    )
                 }
             }
 
@@ -475,7 +506,17 @@ fun DonationScreen(
                     if (selectedAmount <= 0) {
                         Toast.makeText(context, "لطفاً مبلغ معتبری وارد نمایید", Toast.LENGTH_SHORT).show()
                     } else {
-                        onDonationSubmitted(selectedAmount, selectedCampaign, methodTitle, isAnonymous, wallMessage)
+                        val fullMsg = buildString {
+                            if (!isAnonymous && donorName.isNotBlank()) {
+                                append("نام: $donorName")
+                                if (donorPhone.isNotBlank()) append(" - همراه: $donorPhone")
+                                if (wallMessage.isNotBlank()) append(" | ")
+                            }
+                            if (wallMessage.isNotBlank()) {
+                                append(wallMessage)
+                            }
+                        }
+                        onDonationSubmitted(selectedAmount, selectedCampaign, methodTitle, isAnonymous, fullMsg)
                     }
                 },
                 modifier = Modifier

@@ -18,6 +18,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.ui.components.ReceiptDialog
 import com.example.ui.components.RtlContainer
 import com.example.ui.screens.AboutAndTrusteesScreen
+import com.example.ui.screens.AdminScreen
 import com.example.ui.screens.ContactUsScreen
 import com.example.ui.screens.DonationHistoryScreen
 import com.example.ui.screens.DonationScreen
@@ -235,9 +236,20 @@ class MainActivity : ComponentActivity() {
                                     fontSize = fontSize,
                                     notificationsEnabled = notificationsEnabled,
                                     onBackClick = { navController.popBackStack() },
+                                    onAdminClick = { navController.navigate("admin") },
                                     onToggleDarkTheme = { viewModel.toggleTheme(it) },
                                     onSetFontSize = { viewModel.setFontSize(it) },
                                     onToggleNotifications = { viewModel.toggleNotifications(it) }
+                                )
+                            }
+
+                            composable("admin") {
+                                AdminScreen(
+                                    donations = userDonations,
+                                    wallMessages = wallMessages,
+                                    totalRaised = totalDonated,
+                                    donorsCount = donorsCount,
+                                    onBackClick = { navController.popBackStack() }
                                 )
                             }
                         }
