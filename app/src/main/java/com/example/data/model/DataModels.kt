@@ -95,8 +95,31 @@ data class CampaignItem(
     val endDate: String
 )
 
+data class MediaItem(
+    val id: Long,
+    val title: String,
+    val category: String,
+    val date: String,
+    val imageRes: Int = 0,
+    val imageUri: String? = null,
+    val isVideo: Boolean = false,
+    val duration: String = "",
+    val description: String = ""
+)
+
 data class FaqItem(
     val id: Long,
     val question: String,
     val answer: String
+)
+
+data class AppNotification(
+    val id: Long = System.currentTimeMillis(),
+    val title: String,
+    val message: String,
+    val category: String, // e.g., "پرداخت", "اطلاعیه", "اخبار", "گالری", "دیوار مهربانی", "عمومی"
+    val dateFormatted: String,
+    val timestamp: Long = System.currentTimeMillis(),
+    val isRead: Boolean = false,
+    val targetRoute: String? = null
 )

@@ -27,6 +27,7 @@ import com.example.ui.screens.GalleryScreen
 import com.example.ui.screens.GoldenDonorsScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.NewsAndNoticesScreen
+import com.example.ui.screens.NotificationsScreen
 import com.example.ui.screens.PledgeScreen
 import com.example.ui.screens.ProjectOverviewScreen
 import com.example.ui.screens.SettingsScreen
@@ -37,6 +38,7 @@ import com.example.ui.screens.WallOfKindnessScreen
 import com.example.ui.screens.WelcomeScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.viewmodel.MainViewModel
+import com.example.util.NotificationHelper
 
 class MainActivity : ComponentActivity() {
 
@@ -45,6 +47,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Create notification channel for system notifications
+        NotificationHelper.createNotificationChannel(applicationContext)
 
         setContent {
             val isDarkTheme by viewModel.isDarkTheme.collectAsState()
@@ -58,6 +63,15 @@ class MainActivity : ComponentActivity() {
             val userPledges by viewModel.pledges.collectAsState()
             val wallMessages by viewModel.wallMessages.collectAsState()
             val latestReceipt by viewModel.latestReceipt.collectAsState()
+
+            val newsList by viewModel.newsList.collectAsState()
+            val noticesList by viewModel.noticesList.collectAsState()
+            val boardMembers by viewModel.boardMembers.collectAsState()
+            val campaigns by viewModel.campaigns.collectAsState()
+            val mediaList by viewModel.mediaList.collectAsState()
+
+            val notifications by viewModel.notifications.collectAsState()
+            val unreadNotificationsCount by viewModel.unreadNotificationsCount.collectAsState()
 
             MyApplicationTheme(darkTheme = isDarkTheme) {
                 Surface(
@@ -114,8 +128,34 @@ class MainActivity : ComponentActivity() {
                                     userProfile = userProfile,
                                     totalRaisedAmount = totalDonated,
                                     totalDonorsCount = donorsCount,
+                                    unreadNotificationsCount = unreadNotificationsCount,
                                     onNavigate = { route ->
                                         navController.navigate(route)
+                                    }
+                                )
+                            }
+
+                            composable("notifications") {
+                                NotificationsScreen(
+                                    notifications = notifications,
+                                    unreadCount = unreadNotificationsCount,
+                                    onBackClick = { navController.popBackStack() },
+                                    onNotificationClick = { notification ->
+                                        viewModel.markNotificationAsRead(notification.id)
+                                        notification.targetRoute?.let { target ->
+                                            if (target == "news_and_notices") {
+                                                navController.navigate("news_notices")
+                                            } else if (target == "wall_of_kindness") {
+                                                navController.navigate("wall")
+                                            } else {
+                                                navController.navigate(target)
+                                            }
+                                        }
+                                    },
+                                    onMarkAllRead = { viewModel.markAllNotificationsAsRead() },
+                                    onDeleteNotification = { viewModel.deleteNotification(it) },
+                                    onSendNotification = { title, msg, category ->
+                                        viewModel.postNotification(title, msg, category)
                                     }
                                 )
                             }
@@ -189,21 +229,26 @@ class MainActivity : ComponentActivity() {
 
                             composable("news_notices") {
                                 NewsAndNoticesScreen(
-                                    newsList = viewModel.getNewsList(),
-                                    noticesList = viewModel.getNoticesList(),
+                                    newsList = newsList,
+                                    noticesList = noticesList,
                                     onBackClick = { navController.popBackStack() }
                                 )
                             }
 
                             composable("gallery") {
                                 GalleryScreen(
-                                    onBackClick = { navController.popBackStack() }
+                                    mediaList = mediaList,
+                                    isAdmin = false,
+                                    onBackClick = { navController.popBackStack() },
+                                    onAddMedia = { viewModel.addMediaItem(it) },
+                                    onUpdateMedia = { viewModel.updateMediaItem(it) },
+                                    onDeleteMedia = { viewModel.deleteMediaItem(it) }
                                 )
                             }
 
                             composable("about_trustees") {
                                 AboutAndTrusteesScreen(
-                                    boardMembers = viewModel.getBoardMembers(),
+                                    boardMembers = boardMembers,
                                     onBackClick = { navController.popBackStack() }
                                 )
                             }
@@ -249,6 +294,26 @@ class MainActivity : ComponentActivity() {
                                     wallMessages = wallMessages,
                                     totalRaised = totalDonated,
                                     donorsCount = donorsCount,
+                                    newsList = newsList,
+                                    noticesList = noticesList,
+                                    boardMembers = boardMembers,
+                                    campaigns = campaigns,
+                                    onAddNews = viewModel::addNewsItem,
+                                    onUpdateNews = viewModel::updateNewsItem,
+                                    onDeleteNews = viewModel::deleteNewsItem,
+                                    onAddNotice = viewModel::addNoticeItem,
+                                    onUpdateNotice = viewModel::updateNoticeItem,
+                                    onDeleteNotice = viewModel::deleteNoticeItem,
+                                    onAddBoardMember = viewModel::addBoardMember,
+                                    onUpdateBoardMember = viewModel::updateBoardMember,
+                                    onDeleteBoardMember = viewModel::deleteBoardMember,
+                                    onAddCampaign = viewModel::addCampaignItem,
+                                    onUpdateCampaign = viewModel::updateCampaignItem,
+                                    onDeleteCampaign = viewModel::deleteCampaignItem,
+                                    mediaList = mediaList,
+                                    onAddMedia = viewModel::addMediaItem,
+                                    onUpdateMedia = viewModel::updateMediaItem,
+                                    onDeleteMedia = viewModel::deleteMediaItem,
                                     onBackClick = { navController.popBackStack() }
                                 )
                             }

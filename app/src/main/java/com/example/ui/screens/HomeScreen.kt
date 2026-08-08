@@ -37,6 +37,7 @@ import androidx.compose.material.icons.outlined.LocalHospital
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.MedicalServices
 import androidx.compose.material.icons.outlined.MilitaryTech
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Videocam
@@ -45,6 +46,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -84,6 +86,7 @@ fun HomeScreen(
     userProfile: UserProfile?,
     totalRaisedAmount: Long,
     totalDonorsCount: Int,
+    unreadNotificationsCount: Int = 0,
     onNavigate: (String) -> Unit
 ) {
     val phaseGoalAmount = 37_800_000_000L // 37.8 Billion Tomans Phase 1 target
@@ -103,6 +106,7 @@ fun HomeScreen(
     val gridItems = listOf(
         NavSectionItem("معرفی پروژه", "۶۴ تختخوابی", Icons.Outlined.LocalHospital, "project_overview"),
         NavSectionItem("کمک مالی آنلاین", "پرداخت دلخواه", Icons.Outlined.Favorite, "donation"),
+        NavSectionItem("مرکز اعلان‌ها", "اطلاعیه و پرداختی", Icons.Outlined.Notifications, "notifications"),
         NavSectionItem("نذر سلامت", "تعهد ماهانه", Icons.Outlined.MedicalServices, "pledge"),
         NavSectionItem("دیوار مهربانی", "دل‌نوشته خیرین", Icons.Outlined.CardGiftcard, "wall"),
         NavSectionItem("سوابق کمک‌ها", "گزارش مالی", Icons.Outlined.History, "donation_history"),
@@ -142,7 +146,7 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             val userName = if (userProfile?.name?.isNotBlank() == true) userProfile.name else "همراه گرامی"
                             Text(
                                 text = "سلام، $userName 🌿",
@@ -157,19 +161,55 @@ fun HomeScreen(
                             )
                         }
 
-                        // Badge Chip
-                        val userBadge = PersianFormatters.getBadgeForAmount(userProfile?.totalDonatedAmount ?: 0L)
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surface
-                        ) {
-                            Text(
-                                text = userBadge,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // Notification Bell Icon with Badge
+                            Box {
+                                IconButton(
+                                    onClick = { onNavigate("notifications") },
+                                    modifier = Modifier
+                                        .size(42.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surface)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Notifications,
+                                        contentDescription = "اعلان‌ها",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                                if (unreadNotificationsCount > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .size(18.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.Red),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = unreadNotificationsCount.toString(),
+                                            color = Color.White,
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Badge Chip
+                            val userBadge = PersianFormatters.getBadgeForAmount(userProfile?.totalDonatedAmount ?: 0L)
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surface
+                            ) {
+                                Text(
+                                    text = userBadge,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                )
+                            }
                         }
                     }
                 }

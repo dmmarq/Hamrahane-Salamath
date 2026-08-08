@@ -1,10 +1,13 @@
 package com.example.repository
 
 import com.example.data.local.AppDatabase
+import com.example.R
+import com.example.data.model.AppNotification
 import com.example.data.model.BoardMember
 import com.example.data.model.CampaignItem
 import com.example.data.model.Donation
 import com.example.data.model.FaqItem
+import com.example.data.model.MediaItem
 import com.example.data.model.NewsItem
 import com.example.data.model.NoticeItem
 import com.example.data.model.Pledge
@@ -398,6 +401,16 @@ class AppRepository(private val db: AppDatabase) {
         )
     )
 
+    fun getMediaList(): List<MediaItem> = listOf(
+        MediaItem(1, "نمای سه بعدی بیمارستان فردوسیه", "طراحی معماری", "۱۴۰۳/۰۵/۰۱", R.drawable.img_hospital_hero_1785868113804, isVideo = false, description = "طرح شبیه‌سازی سه بعدی نما و سازه اصلی بیمارستان ۶۴ تختخوابی فردوسیه"),
+        MediaItem(2, "مراحل خاکبرداری و فونداسیون", "گزارش عمرانی", "۱۴۰۳/۰۴/۱۵", R.drawable.img_charity_banner_1785868126657, isVideo = false, description = "تکمیل خاکبرداری و تسطیح زمین ۵۰۰۰ متری اهدایی شهرداری فردوسیه"),
+        MediaItem(3, "جلسه اعضای هیئت امنا با خیرین", "رویدادها", "۱۴۰۳/۰۴/۰۱", R.drawable.img_hospital_hero_1785868113804, isVideo = false, description = "نشست صمیمی اعضای هیئت امنا با خیرین گرانقدر منطقه شهریار و فردوسیه"),
+        MediaItem(4, "نشان خیرین و حامیان پروژه", "افتخارات", "۱۴۰۳/۰۳/۲۰", R.drawable.img_badge_golden_1785868137398, isVideo = false, description = "تندیس و نشان افتخار اهدا شده به حامیان اصلی ساخت بیمارستان"),
+        MediaItem(5, "گزارش تصویری پیشرفت فیزیکی ۶۳٪", "گزارش ویدئویی", "۱۴۰۳/۰۵/۰۵", R.drawable.img_hospital_hero_1785868113804, isVideo = true, duration = "۰۴:۲۵", description = "ویدئوی مستند از آخرین وضعیت ساخت و ساز و اسکلت‌بندی بخش‌های بستری"),
+        MediaItem(6, "مصاحبه با رئیس هیئت امنای خیرین", "مصاحبه اختصاصی", "۱۴۰۳/۰۴/۲۰", R.drawable.img_charity_banner_1785868126657, isVideo = true, duration = "۰۸:۱۲", description = "تشریح برنامه‌ها، زمان‌بندی بهره‌برداری و نحوه‌ی جلب مشارکت‌های مردمی"),
+        MediaItem(7, "مراحل بتن‌ریزی فونداسیون اصلی", "مستند عمرانی", "۱۴۰۳/۰۳/۱۵", R.drawable.img_hospital_hero_1785868113804, isVideo = true, duration = "۰۵:۴۰", description = "ویدئوی عملیات گسترده بتن‌ریزی با حضور مهندسین ناظر")
+    )
+
     fun getFaqList(): List<FaqItem> = listOf(
         FaqItem(
             id = 1,
@@ -418,6 +431,36 @@ class AppRepository(private val db: AppDatabase) {
             id = 4,
             question = "چگونه می‌توانم نام خود یا درگذشتگانم را در لوح سپاس بیمارستان ثبت کنم؟",
             answer = "کمک‌های بالای ۱۰ میلیون تومان امکان ثبت نام خیر در لوح افتخار ورودی بیمارستان و بخش‌های تخصصی را خواهند داشت."
+        )
+    )
+
+    fun getInitialNotifications(): List<AppNotification> = listOf(
+        AppNotification(
+            id = 101,
+            title = "پرداخت جدید ۵۰۰,۰۰۰ تومان",
+            message = "خیر گرانقدر مبلغ ۵۰۰,۰۰۰ تومان به ساخت بخش اورژانس اهدای فرمودند.",
+            category = "پرداخت",
+            dateFormatted = "امروز",
+            isRead = false,
+            targetRoute = "donation_history"
+        ),
+        AppNotification(
+            id = 102,
+            title = "اطلاعیه پیشرفت فیزیکی ۶۳٪",
+            message = "اسکلت‌بندی و بتن‌ریزی فاز اول بیمارستان ۶۴ تختخوابی فردوسیه با موفقیت به ۶۳٪ رسید.",
+            category = "اطلاعیه",
+            dateFormatted = "امروز",
+            isRead = false,
+            targetRoute = "news_and_notices"
+        ),
+        AppNotification(
+            id = 103,
+            title = "پست جدید در گالری تصویری",
+            message = "ویدئوی گزارش مستند از آخرین وضعیت ساخت بیمارستان در گالری منتشر شد.",
+            category = "گالری",
+            dateFormatted = "دیروز",
+            isRead = true,
+            targetRoute = "gallery"
         )
     )
 
